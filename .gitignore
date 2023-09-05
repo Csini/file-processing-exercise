@@ -1,10 +1,13 @@
 #maven 
 target
-**/target
+/target/
+**/target/
+.classpath
 
 #eclipse settings
 .project
 .settings
+/.settings/
 
 # Log file
 *.log
