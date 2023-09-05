@@ -3,11 +3,14 @@ target
 /target/
 **/target/
 .classpath
+**/.classpath
 
 #eclipse settings
 .project
 .settings
 /.settings/
+**/.project
+**/.settings/
 
 # Log file
 *.log
