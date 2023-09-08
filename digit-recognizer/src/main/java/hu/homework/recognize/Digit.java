@@ -1,4 +1,4 @@
-package hu.homework;
+package hu.homework.recognize;
 
 public class Digit {
 
@@ -10,7 +10,6 @@ public class Digit {
 
 	public Digit(int index, String firstLine) {
 
-//		System.out.println("firstLine: " + firstLine);
 		this.index = index;
 
 		if (!" _ ".equals(firstLine) && !"   ".equals(firstLine)) {
@@ -29,16 +28,20 @@ public class Digit {
 		return index;
 	}
 
-	public void initSecondLine(String secondLine) {
-		readed += secondLine;
+//	public void initSecondLine(String secondLine) {
+//		readed += secondLine;
+//
+//	}
+//
+//	public void initThirdLine(String thirdLine) {
+//		readed += thirdLine;
+//	}
 
+	public void addLine(String line) {
+		readed += line;
 	}
 
-	public void initThirdLine(String thirdLine) {
-		readed += thirdLine;
-	}
-
-	public char getChar() {
+	public char getAsChar() {
 
 //		System.out.println("readed (" + index + "):" + readed);
 

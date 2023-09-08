@@ -1,4 +1,4 @@
-package hu.homework;
+package hu.homework.recognize;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -6,9 +6,10 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
-import java.util.stream.Collector.Characteristics;
 
 public class DigitCollector implements Collector<Digit, StringBuilder, String> {
+
+	private static final String POSTFIX_ILLEGAL = " ILLEGAL";
 
 	private static final char EMPTY_CHAR = ' ';
 
@@ -39,7 +40,7 @@ public class DigitCollector implements Collector<Digit, StringBuilder, String> {
 	public BiConsumer<StringBuilder, Digit> accumulator() {
 		return (output, input) -> {
 
-			output.setCharAt(input.getIndex(), input.getChar());
+			output.setCharAt(input.getIndex(), input.getAsChar());
 
 			if (input.isInvalid()) {
 				invalid = true;
@@ -69,7 +70,7 @@ public class DigitCollector implements Collector<Digit, StringBuilder, String> {
 		return (StringBuilder result) -> {
 
 			if (invalid) {
-				result.append(" ILLEGAL");
+				result.append(POSTFIX_ILLEGAL);
 			}
 			return result.toString();
 		};

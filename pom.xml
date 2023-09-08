@@ -6,5 +6,6 @@
   <packaging>pom</packaging>
   <modules>
   	<module>digit-recognizer</module>
+  	<module>word-counter</module>
   </modules>
 </project>
