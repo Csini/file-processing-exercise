@@ -1,5 +1,24 @@
 package hu.homework;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StreamTokenizer;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+
+import org.apache.logging.log4j.CloseableThreadContext;
+
+import lombok.extern.log4j.Log4j2;
+
+@Log4j2
 public class WordsCounter {
 
 //	The class should contain a single map that will hold the words and the number of items of each.
@@ -12,20 +31,126 @@ public class WordsCounter {
 //	characters such as “,.-:” etc. The class skelethon should look like this:
 
 	public static void main(String[] args) {
-		WordsCounter wc = new WordsCounter();
-	// load text files in parallel
-		wc.load("file1.txt", "file2.txt", "file3.txt");
-	// display words statistics
-		wc.displayStatus();
+
+		try {
+			WordsCounter wc = new WordsCounter();
+			// load text files in parallel
+			wc.load("file1.txt", "file2.txt", "file3.txt");
+			// display words statistics
+			wc.displayStatus();
+		} catch (Exception e) {
+			log.error("", e);
+			throw e;
+		}
 	}
 
-	private void displayStatus() {
-		// TODO Auto-generated method stub
+	public String displayStatus() {
+
+		log.debug("displayStatus:" + wordCount);
+
+//		and 1
+//		file 3
+//		first 1
+//		is 3
+//		one 1
+//		second 1
+//		the 3
+//		third 1
+//		this 3
+//		** total: 17
+
+//		long total = wordCount.values().stream().map(value -> value.intValue()).reduce(0, Integer::sum);
+		AtomicLong total = new AtomicLong();
+
+		StringBuilder sb = new StringBuilder("\n");
+
+		wordCount.entrySet().stream().sorted(Comparator.comparing(Map.Entry<String, LongAdder>::getKey))
+				.forEach(entry -> {
+					sb.append(entry.getKey());
+					sb.append(" ");
+					sb.append(entry.getValue());
+					sb.append("\n");
+					total.addAndGet(entry.getValue().longValue());
+				});
+
+		sb.append("** total: ");
+		sb.append(total);
+
+		String ret = sb.toString();
+		log.info(ret);
+
+		return ret;
 
 	}
 
-	private void load(String... files) {
-		// TODO Auto-generated method stub
+	public void load(String... files) {
 
+		int poolsize = 10;
+
+		if (files.length < poolsize) {
+			poolsize = files.length;
+		}
+
+		// setup
+		log.info("poolsize:" + poolsize);
+		executor = Executors.newFixedThreadPool(poolsize);
+
+		CompletableFuture<?>[] futures = Arrays.stream(files).map(file -> execute(file, () -> {
+
+			try (BufferedReader r = new BufferedReader(new FileReader(file))) {
+
+				StreamTokenizer streamTokenizer = new StreamTokenizer(r);
+				int currentToken = streamTokenizer.nextToken();
+				while (currentToken != StreamTokenizer.TT_EOF) {
+
+					String key = streamTokenizer.sval;
+
+					log.debug("key: " + key);
+
+//					wordCount.computeIfAbsent(key, k ->  new LongAdder()).increment();
+					wordCount.putIfAbsent(key, new LongAdder());
+					wordCount.get(key).increment();
+
+					currentToken = streamTokenizer.nextToken();
+				}
+			} catch (IOException e) {
+				log.error("", e);
+				throw new IllegalArgumentException(e);
+			}
+
+		})).toArray(CompletableFuture[]::new);
+
+		CompletableFuture.allOf(futures).join();
+
+		teardown();
+
+	}
+
+	private ExecutorService executor;
+
+	private java.util.concurrent.ConcurrentHashMap<String, LongAdder> wordCount = new java.util.concurrent.ConcurrentHashMap<>();
+
+	private void teardown() {
+		executor.shutdown();
+		try {
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+
+		} catch (InterruptedException e) {
+			log.error("", e);
+		}
+	}
+
+	public CompletableFuture<Void> execute(String fileName, Runnable task) {
+
+		try (final CloseableThreadContext.Instance ctcglobal = CloseableThreadContext.put("fileName", fileName)) {
+
+			log.debug("running...");
+			return CompletableFuture.runAsync(task, executor).exceptionally(ex -> {
+				log.error("Received exception {}, returning empty.", ex.getMessage());
+//              return Set.of();
+				return null;
+			});
+
+		}
 	}
 }

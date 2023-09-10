@@ -12,7 +12,7 @@ import java.util.Scanner;
 import hu.homework.recognize.Line;
 
 public class DigitRecognizer {
-	
+
 	public static void main(String[] args) throws IOException, URISyntaxException {
 		run(args[0], args[1]);
 	}
@@ -22,21 +22,23 @@ public class DigitRecognizer {
 		Path inputPath = Paths.get(DigitRecognizer.class.getClassLoader().getResource(inputFileName).toURI());
 
 		Path outputPath = Paths.get(outputFileName);
-		
+
 		try {
 			Files.createFile(outputPath);
 		} catch (FileAlreadyExistsException e) {
 			// do nothing
-			//maybe ask to really owerwrite the existing file
-			
-			System.out.print("Are you sure, that you want to override the existing file '"+outputFileName+"'? (y/n) ");  
-			Scanner sc= new Scanner(System.in);   
-			String answer= sc.nextLine();
-			if(!"y".equals(answer.trim().toLowerCase())) {
-				System.out.println("\texiting without processing '"+inputFileName+"'");
-				return;
-			}else {
-				System.out.println("\toverriding...");
+			// maybe ask to really owerwrite the existing file
+
+			System.out.print(
+					"Are you sure, that you want to override the existing file '" + outputFileName + "'? (y/n) ");
+			try (Scanner sc = new Scanner(System.in)) {
+				String answer = sc.nextLine();
+				if (!"y".equals(answer.trim().toLowerCase())) {
+					System.out.println("\texiting without processing '" + inputFileName + "'");
+					return;
+				} else {
+					System.out.println("\toverriding...");
+				}
 			}
 		}
 
@@ -47,9 +49,9 @@ public class DigitRecognizer {
 
 				return new Line(mr.group().split("\\R")).recognize();
 			}).forEach(output -> {
-				
+
 //				System.out.println(output);
-				
+
 				try {
 					writer.write(output);
 					writer.write(System.lineSeparator());

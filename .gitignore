@@ -14,3 +14,4 @@ target
 
 # Log file
 *.log
+**/logs/
