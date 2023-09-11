@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>hu.homework</groupId>
   <artifactId>file-processing-exercise</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>pom</packaging>
   <modules>
   	<module>digit-recognizer</module>
