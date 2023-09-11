@@ -28,5 +28,14 @@ public class WordsCounterTest {
 				"this 2\n" + 
 				"** total: 11", wc.displayStatus());
 	}
+	
+	
+	
+	@Test
+	public void test_file2_file3_javawki() {
+		WordsCounter wc = new WordsCounter();
+		wc.load( "file2.txt", "file3.txt", "javawiki.txt");
+		Assertions.assertEquals(788, wc.total());
+	}
 
 }

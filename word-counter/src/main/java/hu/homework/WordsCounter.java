@@ -30,6 +30,10 @@ public class WordsCounter {
 //	Note: When splitting the text into separate words, there is no need to deal with special
 //	characters such as “,.-:” etc. The class skelethon should look like this:
 
+	private ExecutorService executor;
+
+	private java.util.concurrent.ConcurrentHashMap<String, LongAdder> wordCount = new java.util.concurrent.ConcurrentHashMap<>();
+
 	public static void main(String[] args) {
 
 		try {
@@ -95,42 +99,13 @@ public class WordsCounter {
 		log.info("poolsize:" + poolsize);
 		executor = Executors.newFixedThreadPool(poolsize);
 
-		CompletableFuture<?>[] futures = Arrays.stream(files).map(file -> execute(file, () -> {
-
-			try (BufferedReader r = new BufferedReader(new FileReader(file))) {
-
-				StreamTokenizer streamTokenizer = new StreamTokenizer(r);
-				int currentToken = streamTokenizer.nextToken();
-				while (currentToken != StreamTokenizer.TT_EOF) {
-
-					String key = streamTokenizer.sval;
-
-					log.debug("key: " + key);
-
-//					wordCount.computeIfAbsent(key, k ->  new LongAdder()).increment();
-					wordCount.putIfAbsent(key, new LongAdder());
-					wordCount.get(key).increment();
-
-					currentToken = streamTokenizer.nextToken();
-				}
-			} catch (IOException e) {
-				log.error("", e);
-				throw new IllegalArgumentException(e);
-			}
-
-		})).toArray(CompletableFuture[]::new);
+		CompletableFuture<?>[] futures = Arrays.stream(files).map(file -> execute(file))
+				.toArray(CompletableFuture[]::new);
 
 		CompletableFuture.allOf(futures).join();
 
-		teardown();
+		// teardown
 
-	}
-
-	private ExecutorService executor;
-
-	private java.util.concurrent.ConcurrentHashMap<String, LongAdder> wordCount = new java.util.concurrent.ConcurrentHashMap<>();
-
-	private void teardown() {
 		executor.shutdown();
 		try {
 			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
@@ -138,19 +113,61 @@ public class WordsCounter {
 		} catch (InterruptedException e) {
 			log.error("", e);
 		}
+
 	}
 
-	public CompletableFuture<Void> execute(String fileName, Runnable task) {
+	private CompletableFuture<Void> execute(String fileName) {
 
-		try (final CloseableThreadContext.Instance ctcglobal = CloseableThreadContext.put("fileName", fileName)) {
+		return CompletableFuture.runAsync(() -> {
+			try (final CloseableThreadContext.Instance ctcglobal = CloseableThreadContext.put("fileName", fileName);
+					BufferedReader r = new BufferedReader(new FileReader(fileName))) {
+				log.info("starting...");
 
-			log.debug("running...");
-			return CompletableFuture.runAsync(task, executor).exceptionally(ex -> {
-				log.error("Received exception {}, returning empty.", ex.getMessage());
+				StreamTokenizer streamTokenizer = new StreamTokenizer(r);
+				int currentToken = streamTokenizer.nextToken();
+				while (currentToken != StreamTokenizer.TT_EOF) {
+
+					String key;
+
+					if (streamTokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+						key = "" + streamTokenizer.nval;
+					} else if (streamTokenizer.ttype == StreamTokenizer.TT_WORD) {
+						key = streamTokenizer.sval;
+					} else {
+						key = "" + (char) currentToken;
+					}
+
+					log.debug("key: " + key);
+
+					if (key != null) {
+
+//						wordCount.computeIfAbsent(key, k ->  new LongAdder()).increment();
+						wordCount.putIfAbsent(key, new LongAdder());
+						wordCount.get(key).increment();
+					}
+
+					currentToken = streamTokenizer.nextToken();
+				}
+			} catch (IOException e) {
+				log.error("", e);
+				throw new IllegalArgumentException(e);
+			} catch (Exception e) {
+				log.error("", e);
+				throw new IllegalArgumentException(e);
+			} finally {
+				log.info("Processing " + fileName + " is READY.");
+			}
+
+		}, executor).exceptionally(ex -> {
+			log.error("Received exception {}, returning empty." + ex.getMessage(), ex);
 //              return Set.of();
-				return null;
-			});
+			return null;
+		});
 
-		}
+	}
+
+	public long total() {
+		long total = wordCount.values().stream().map(value -> value.intValue()).reduce(0, Integer::sum);
+		return total;
 	}
 }
