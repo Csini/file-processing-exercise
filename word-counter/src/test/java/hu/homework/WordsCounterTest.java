@@ -35,6 +35,7 @@ public class WordsCounterTest {
 	public void test_file2_file3_javawki() {
 		WordsCounter wc = new WordsCounter();
 		wc.load( "file2.txt", "file3.txt", "javawiki.txt");
+		wc.displayStatus();
 		Assertions.assertEquals(788, wc.total());
 	}
 

@@ -28,7 +28,7 @@
 			<AppenderRef ref="RollingFile" />
 		</Root>
 
-		<Logger name="hu.homework" level="debug"></Logger>
+		<Logger name="hu.homework" level="info"></Logger>
 	</Loggers>
 
 </Configuration>

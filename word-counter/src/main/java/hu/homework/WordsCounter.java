@@ -36,21 +36,17 @@ public class WordsCounter {
 
 	public static void main(String[] args) {
 
-		try {
-			WordsCounter wc = new WordsCounter();
-			// load text files in parallel
-			wc.load("file1.txt", "file2.txt", "file3.txt");
-			// display words statistics
-			wc.displayStatus();
-		} catch (Exception e) {
-			log.error("", e);
-			throw e;
-		}
+		WordsCounter wc = new WordsCounter();
+		// load text files in parallel
+		wc.load("file1.txt", "file2.txt", "file3.txt");
+		// display words statistics
+		wc.displayStatus();
+
 	}
 
 	public String displayStatus() {
-
-		log.debug("displayStatus:" + wordCount);
+		try {
+			log.debug("displayStatus:" + wordCount);
 
 //		and 1
 //		file 3
@@ -64,45 +60,53 @@ public class WordsCounter {
 //		** total: 17
 
 //		long total = wordCount.values().stream().map(value -> value.intValue()).reduce(0, Integer::sum);
-		AtomicLong total = new AtomicLong();
+			AtomicLong total = new AtomicLong();
 
-		StringBuilder sb = new StringBuilder("\n");
+			StringBuilder sb = new StringBuilder("\n");
 
-		wordCount.entrySet().stream().sorted(Comparator.comparing(Map.Entry<String, LongAdder>::getKey))
-				.forEach(entry -> {
-					sb.append(entry.getKey());
-					sb.append(" ");
-					sb.append(entry.getValue());
-					sb.append("\n");
-					total.addAndGet(entry.getValue().longValue());
-				});
+			wordCount.entrySet().stream().sorted(Comparator.comparing(Map.Entry<String, LongAdder>::getKey))
+					.forEach(entry -> {
+						sb.append(entry.getKey());
+						sb.append(" ");
+						sb.append(entry.getValue());
+						sb.append("\n");
+						total.addAndGet(entry.getValue().longValue());
+					});
 
-		sb.append("** total: ");
-		sb.append(total);
+			sb.append("** total: ");
+			sb.append(total);
 
-		String ret = sb.toString();
-		log.info(ret);
+			String ret = sb.toString();
+			log.info(ret);
 
-		return ret;
-
+			return ret;
+		} catch (Exception e) {
+			log.error("displayStatus", e);
+			throw e;
+		}
 	}
 
 	public void load(String... files) {
+		try {
+			int poolsize = 10;
 
-		int poolsize = 10;
+			if (files.length < poolsize) {
+				poolsize = files.length;
+			}
 
-		if (files.length < poolsize) {
-			poolsize = files.length;
+			// setup
+			log.info("poolsize: " + poolsize + "; files: " + Arrays.asList(files));
+			executor = Executors.newFixedThreadPool(poolsize);
+
+			CompletableFuture<?>[] futures = Arrays.stream(files).map(file -> execute(file))
+					.toArray(CompletableFuture[]::new);
+
+			CompletableFuture.allOf(futures).join();
+
+		} catch (Exception e) {
+			log.error("load", e);
+			throw e;
 		}
-
-		// setup
-		log.info("poolsize:" + poolsize);
-		executor = Executors.newFixedThreadPool(poolsize);
-
-		CompletableFuture<?>[] futures = Arrays.stream(files).map(file -> execute(file))
-				.toArray(CompletableFuture[]::new);
-
-		CompletableFuture.allOf(futures).join();
 
 		// teardown
 
